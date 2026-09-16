@@ -84,7 +84,7 @@ Please feel free to add more menu items to the list in `script.js`!
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -103,3 +103,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 6.  **Go to your repo Settings -> Pages ->** Select source `Deploy from a branch` -> Branch `main` / `root` and click Save. Your page will be live at `https://[your-username].github.io/random-lunch-generator` in a minute.
 
 Would you like me to help you write the initial code for `index.html`, `style.css`, and `script.js` next?
+
+## Q: Yes, generate the code. Use a single index.html with inline CSS and JS — no separate style.css or script.js files. For icons use Font Awesome 6.4.0 Free (solid), linked from cdnjs: `https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css`. Every icon class you use MUST be verified to exist in that exact version — before writing each icon, fetch the CSS and search for the pattern `.fa-NAME:before` or `.fa-NAME,`; if no match is found, pick a different icon. Do not guess or hallucinate class names. The lunch menu should include at least these 12 items: Pizza, Sushi, Burger, Salad, Tacos, Ramen, Sandwich, Pasta, Curry, Steak, Soup, BBQ — each with a valid corresponding Font Awesome icon. If you cannot fetch the CSS (no network access), say so explicitly and output the full list of icon class names you used so I can verify them with `week1/check-icons.js`.
