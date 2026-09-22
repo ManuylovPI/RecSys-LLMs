@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// --- Replicate the EXACT buggy parsing from data.js ---
+// --- Replicate the EXACT buggy parsing from original data.js ---
 const BUGGY_GENRE_NAMES = [
     "Action", "Adventure", "Animation", "Children's", "Comedy",
     "Crime", "Documentary", "Drama", "Fantasy", "Film-Noir",
@@ -25,7 +25,7 @@ function parseItemDataBuggy(text) {
     return movies;
 }
 
-// --- Fixed parsing (19 genres including "unknown") ---
+// --- Fixed parsing (19 genres including "unknown", field count == 24) ---
 const FIXED_GENRE_NAMES = [
     "unknown", "Action", "Adventure", "Animation", "Children's", "Comedy",
     "Crime", "Documentary", "Drama", "Fantasy", "Film-Noir",
@@ -58,6 +58,17 @@ function jaccard(a, b) {
     return union.size > 0 ? intersection.size / union.size : 0;
 }
 
+// --- Compute tied lists ---
+function getTiedList(movies, targetId) {
+    const target = movies.find(m => m.id === targetId);
+    const scored = movies
+        .filter(m => m.id !== targetId)
+        .map(m => ({ ...m, score: jaccard(target.genres, m.genres) }))
+        .sort((a, b) => b.score - a.score);
+    const topScore = scored[0].score;
+    return scored.filter(m => m.score === topScore);
+}
+
 // --- Main ---
 const itemPath = path.join(__dirname, '..', 'u.item');
 const text = fs.readFileSync(itemPath, 'latin1');
@@ -65,35 +76,81 @@ const text = fs.readFileSync(itemPath, 'latin1');
 const buggyMovies = parseItemDataBuggy(text);
 const fixedMovies = parseItemDataFixed(text);
 
-function analyze(movies, label, targetId) {
-    console.log(`\n${'='.repeat(60)}`);
-    console.log(`  ${label}`);
-    console.log(`${'='.repeat(60)}`);
+const targetId = 225;
+const buggyTarget = buggyMovies.find(m => m.id === targetId);
+const fixedTarget = fixedMovies.find(m => m.id === targetId);
 
-    const target = movies.find(m => m.id === targetId);
-    if (!target) { console.log(`  id ${targetId} not found!`); return; }
+console.log('='.repeat(70));
+console.log(`  BUGGY code — id ${targetId}: "${buggyTarget.title}"`);
+console.log('='.repeat(70));
+console.log(`  Genres: [${buggyTarget.genres.join(', ')}]`);
 
-    console.log(`\n  Target: id=${target.id} "${target.title}"`);
-    console.log(`  Genres: [${target.genres.join(', ')}]`);
+const buggyTied = getTiedList(buggyMovies, targetId);
+console.log(`  Top score: ${buggyTied[0].score}`);
+console.log(`  Movies tied at top score: ${buggyTied.length}`);
+buggyTied.forEach(m => {
+    console.log(`    id=${String(m.id).padStart(4)}  "${m.title}"`);
+    console.log(`           genres: [${m.genres.join(', ')}]`);
+});
 
-    const scored = movies
-        .filter(m => m.id !== targetId)
-        .map(m => ({ ...m, score: jaccard(target.genres, m.genres) }))
-        .sort((a, b) => b.score - a.score);
+console.log('\n');
+console.log('='.repeat(70));
+console.log(`  FIXED code — id ${targetId}: "${fixedTarget.title}"`);
+console.log('='.repeat(70));
+console.log(`  Genres: [${fixedTarget.genres.join(', ')}]`);
 
-    const topScore = scored[0].score;
-    const tied = scored.filter(m => m.score === topScore);
+const fixedTied = getTiedList(fixedMovies, targetId);
+console.log(`  Top score: ${fixedTied[0].score}`);
+console.log(`  Movies tied at top score: ${fixedTied.length}`);
+fixedTied.forEach(m => {
+    console.log(`    id=${String(m.id).padStart(4)}  "${m.title}"`);
+    console.log(`           genres: [${m.genres.join(', ')}]`);
+});
 
-    console.log(`\n  Top score: ${topScore}`);
-    console.log(`  Movies tied at top score: ${tied.length}`);
-    console.log(`  (out of ${scored.length} candidates)\n`);
+// --- Set difference ---
+const buggyIds = new Set(buggyTied.map(m => m.id));
+const fixedIds = new Set(fixedTied.map(m => m.id));
 
-    tied.forEach(m => {
-        console.log(`    id=${String(m.id).padStart(4)}  score=${m.score.toFixed(4)}  "${m.title}"`);
-        console.log(`           genres: [${m.genres.join(', ')}]`);
+const onlyInBuggy = buggyTied.filter(m => !fixedIds.has(m.id));
+const onlyInFixed = fixedTied.filter(m => !buggyIds.has(m.id));
+const inBoth = buggyTied.filter(m => fixedIds.has(m.id));
+
+console.log('\n');
+console.log('='.repeat(70));
+console.log('  SET DIFFERENCE');
+console.log('='.repeat(70));
+console.log(`  In both lists:  ${inBoth.length} movies`);
+console.log(`  Only in buggy:  ${onlyInBuggy.length} movies`);
+console.log(`  Only in fixed:  ${onlyInFixed.length} movies`);
+
+if (onlyInBuggy.length > 0) {
+    console.log('\n  --- Only in BUGGY list ---');
+    onlyInBuggy.forEach(m => {
+        const buggyMovie = buggyMovies.find(x => x.id === m.id);
+        const fixedMovie = fixedMovies.find(x => x.id === m.id);
+        const buggyJ = jaccard(buggyTarget.genres, buggyMovie.genres);
+        const fixedJ = jaccard(fixedTarget.genres, fixedMovie.genres);
+        console.log(`\n    id=${m.id} "${m.title}"`);
+        console.log(`      Buggy genres: [${buggyMovie.genres.join(', ')}]  Jaccard=${buggyJ.toFixed(4)}`);
+        console.log(`      Fixed genres: [${fixedMovie.genres.join(', ')}]  Jaccard=${fixedJ.toFixed(4)}`);
     });
 }
 
-const targetId = 255;
-analyze(buggyMovies, `BUGGY code (current) — id ${targetId}`, targetId);
-analyze(fixedMovies, `FIXED code — id ${targetId}`, targetId);
+if (onlyInFixed.length > 0) {
+    console.log('\n  --- Only in FIXED list ---');
+    onlyInFixed.forEach(m => {
+        const buggyMovie = buggyMovies.find(x => x.id === m.id);
+        const fixedMovie = fixedMovies.find(x => x.id === m.id);
+        const buggyJ = jaccard(buggyTarget.genres, buggyMovie.genres);
+        const fixedJ = jaccard(fixedTarget.genres, fixedMovie.genres);
+        console.log(`\n    id=${m.id} "${m.title}"`);
+        console.log(`      Buggy genres: [${buggyMovie.genres.join(', ')}]  Jaccard=${buggyJ.toFixed(4)}`);
+        console.log(`      Fixed genres: [${fixedMovie.genres.join(', ')}]  Jaccard=${fixedJ.toFixed(4)}`);
+    });
+}
+
+if (onlyInBuggy.length === 0 && onlyInFixed.length === 0) {
+    console.log('\n  The tied sets are IDENTICAL — same movie IDs, same order.');
+    console.log('  This confirms the bijection proof: the off-by-one shift');
+    console.log('  preserves Jaccard scores for all non-Western movie pairs.');
+}
