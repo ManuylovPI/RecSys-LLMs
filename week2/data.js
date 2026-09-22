@@ -2,9 +2,9 @@
 let movies = [];
 let ratings = [];
 
-// Genre names as defined in the u.item file
+// Genre names as defined in the u.item file (19 binary flags, fields 5..23)
 const genreNames = [
-    "Action", "Adventure", "Animation", "Children's", "Comedy",
+    "unknown", "Action", "Adventure", "Animation", "Children's", "Comedy",
     "Crime", "Documentary", "Drama", "Fantasy", "Film-Noir",
     "Horror", "Musical", "Mystery", "Romance", "Sci-Fi",
     "Thriller", "War", "Western"
@@ -13,12 +13,13 @@ const genreNames = [
 // Primary function to load data from files
 async function loadData() {
     try {
-        // Load and parse movie data
+        // Load and parse movie data (u.item is ISO-8859-1 encoded)
         const moviesResponse = await fetch('u.item');
         if (!moviesResponse.ok) {
             throw new Error(`Failed to load movie data: ${moviesResponse.status}`);
         }
-        const moviesText = await moviesResponse.text();
+        const moviesBuffer = await moviesResponse.arrayBuffer();
+        const moviesText = new TextDecoder('iso-8859-1').decode(moviesBuffer);
         parseItemData(moviesText);
 
         // Load and parse rating data
@@ -47,7 +48,7 @@ function parseItemData(text) {
         if (line.trim() === '') continue;
         
         const fields = line.split('|');
-        if (fields.length < 5) continue; // Skip invalid lines
+        if (fields.length < 24) continue; // Skip lines missing required fields
         
         const id = parseInt(fields[0]);
         const title = fields[1];

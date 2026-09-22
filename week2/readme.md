@@ -46,17 +46,17 @@ This file is responsible only for fetching and parsing the data from local files
     -   This must be an `async` function.
     -   It will use the `fetch()` API to read `u.item` and `u.data`. Assume these files are in the same directory as `index.html`.
     -   Implement `try...catch` error handling to manage potential file loading failures. If a file fails to load, display an error message in the `#result` paragraph.
-    -   Inside the `try` block, first `await` the fetch call for `u.item`, convert the response to text, and pass it to the `parseItemData` function.
+    -   Inside the `try` block, first `await` the fetch call for `u.item`, convert the response to an `ArrayBuffer`, then decode it using `new TextDecoder('iso-8859-1')` (the file is ISO-8859-1 encoded, not UTF-8). Pass the decoded text to the `parseItemData` function.
     -   Then, `await` the fetch call for `u.data`, convert it to text, and pass it to the `parseRatingData` function.
     -   The function should implicitly return a `Promise` that resolves when the asynchronous operations are complete.
 
 3.  **Parsing Function: `parseItemData(text)`**
     -   This function takes the raw text from `u.item` as input.
-    -   It should define an array of the 18 genre names (from "Action" to "Western").
+    -   It should define an array of the 19 genre names (from "unknown" to "Western").
     -   It will split the input text into individual lines. For each line, it will:
-        -   Split the line by the `|` delimiter.
+        -   Split the line by the `|` delimiter. Validate that there are at least 24 fields; skip the line otherwise.
         -   Extract the movie `id` (field 0) and `title` (field 1).
-        -   Iterate through the last 19 fields to build an array of `genres` for the movie where the value is '1'.
+        -   Iterate through the 19 genre binary fields (indices 5..23) to build an array of `genres` for the movie where the value is '1'.
         -   Create a movie object `{ id, title, genres }` and push it to the global `movies` array.
 
 4.  **Parsing Function: `parseRatingData(text)`**
