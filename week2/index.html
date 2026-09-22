@@ -9,15 +9,33 @@
 <body>
     <div class="container">
         <h1>Content-Based Movie Recommender</h1>
-        <p>Select a movie you like, and we'll find similar ones for you!</p>
-        
+
+        <h2>Item-to-Item</h2>
+        <p>Select a movie you like, and we'll find the 5 most similar ones (cosine similarity on genre vectors).</p>
+
         <div class="controls">
             <select id="movie-select">
                 <option value="" disabled selected>Select a movie</option>
             </select>
             <button id="recommend-btn" onclick="getRecommendations()">Get Recommendations</button>
         </div>
-        
+
+        <h2>Profile-Based</h2>
+        <p>Select 3 movies to build your taste profile, then get the 5 best matches.</p>
+
+        <div class="controls">
+            <select id="profile-select-1">
+                <option value="" disabled selected>Movie 1</option>
+            </select>
+            <select id="profile-select-2">
+                <option value="" disabled selected>Movie 2</option>
+            </select>
+            <select id="profile-select-3">
+                <option value="" disabled selected>Movie 3</option>
+            </select>
+            <button id="profile-btn" onclick="getProfileRecommendations()">Get Profile Recommendations</button>
+        </div>
+
         <div id="result-box">
             <p id="result">Please wait, loading data...</p>
         </div>

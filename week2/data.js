@@ -53,11 +53,11 @@ function parseItemData(text) {
         const id = parseInt(fields[0]);
         const title = fields[1];
         
-        // Extract genres (last 19 fields)
-        const genreValues = fields.slice(5, 24).map(value => parseInt(value));
-        const genres = genreNames.filter((_, index) => genreValues[index] === 1);
-        
-        movies.push({ id, title, genres });
+        // Extract genres (last 19 fields): binary vector and name list
+        const vector = fields.slice(5, 24).map(value => parseInt(value));
+        const genres = genreNames.filter((_, index) => vector[index] === 1);
+
+        movies.push({ id, title, genres, vector });
     }
 }
 

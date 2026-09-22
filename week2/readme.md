@@ -8,18 +8,25 @@ Your task is to generate the complete code for a "Content-Based Movie Recommende
 
 #### **1. Overall Goal**
 
-Build a single-page web application that recommends movies. The application will use `data.js` to load and parse movie and rating data from local files (`u.item`, `u.data`). The `script.js` file will then use this parsed data to populate the UI and calculate content-based recommendations using the Jaccard similarity index when a user makes a selection.
+Build a single-page web application that recommends movies. The application will use `data.js` to load and parse movie and rating data from local files (`u.item`, `u.data`). The `script.js` file will then use this parsed data to populate the UI and calculate content-based recommendations using **cosine similarity** on binary genre vectors. The app supports two modes: **item-to-item** (single movie selection) and **profile-based** (3-movie taste profile).
 
 #### **2. File `index.html` - The Application Structure**
 
 -   **DOCTYPE and Language:** The document should start with `<!DOCTYPE html>` and the `<html>` tag should specify `lang="en"`.
 -   **Title:** The page title should be "Content-Based Movie Recommender".
 -   **Main Heading:** Include an `<h1>` with the text "Content-Based Movie Recommender".
--   **Instructions:** Add a `<p>` tag with instructions like, "Select a movie you like, and we'll find similar ones for you!"
--   **Dropdown Menu:** Include a `<select>` element with the ID `movie-select`. This will be populated dynamically by JavaScript.
--   **Button:** Include a `<button>` with the text "Get Recommendations". When clicked, it must call the `getRecommendations()` JavaScript function.
--   **Result Display Area:** Include a `<div>` with the ID `result-box`. Inside this div, add a `<p>` tag with the ID `result`. This will be used to show loading messages and the final recommendations.
--   **File Linking:** This is a critical step. At the end of the `<body>`, link to **both** JavaScript files. `data.js` must be loaded **before** `script.js` because `script.js` depends on the functions and variables defined in `data.js`.
+-   **Item-to-Item Section:**
+    -   An `<h2>` with text "Item-to-Item".
+    -   A `<p>` with instructions: "Select a movie you like, and we'll find the 5 most similar ones (cosine similarity on genre vectors)."
+    -   A `<select>` element with the ID `movie-select`. This will be populated dynamically by JavaScript.
+    -   A `<button>` with the text "Get Recommendations". When clicked, it must call `getRecommendations()`.
+-   **Profile-Based Section:**
+    -   An `<h2>` with text "Profile-Based".
+    -   A `<p>` with instructions: "Select 3 movies to build your taste profile, then get the 5 best matches."
+    -   Three `<select>` elements with IDs `profile-select-1`, `profile-select-2`, `profile-select-3`. Each will be populated dynamically.
+    -   A `<button>` with the text "Get Profile Recommendations". When clicked, it must call `getProfileRecommendations()`.
+-   **Result Display Area:** Include a `<div>` with the ID `result-box`. Inside this div, add a `<p>` tag with the ID `result`. This will show loading messages and the final recommendations. The result text may be multi-line (use `white-space: pre-line` in CSS).
+-   **File Linking:** At the end of the `<body>`, link to **both** JavaScript files. `data.js` must be loaded **before** `script.js`.
     ```
     <script src="data.js"></script>
     <script src="script.js"></script>
@@ -29,11 +36,12 @@ Build a single-page web application that recommends movies. The application will
 
 -   **Layout:** Create a professional, modern, and user-friendly layout. All content should be centered on the page within a main container.
 -   **Background:** The `<body>` should have a light, neutral background color (e.g., `#f4f7f6`).
--   **Container:** The main container holding all elements should have a white background, rounded corners (`border-radius`), and a subtle box shadow to make it pop.
+-   **Container:** The main container holding all elements should have a white background, rounded corners (`border-radius`), and a subtle box shadow.
 -   **Typography:** Use a clean, sans-serif font like 'Helvetica' or 'Arial'.
--   **Controls:** The `<select>` dropdown and `<button>` should have consistent styling, with adequate padding and a clear visual hierarchy.
--   **Button:** The button should be inviting, with a distinct background color (e.g., a shade of blue), white text, and a hover effect (e.g., slightly darker background) to indicate interactivity.
--   **Result Area:** The `#result-box` should have some padding and a light background to separate it from the controls. The recommendation text inside `#result` should be bold and easy to read.
+-   **Section headings (`h2`):** Centered, slightly smaller than h1, with a darker shade (e.g., `#34495e`), separated by top margin.
+-   **Controls:** The `<select>` dropdowns and `<button>` should have consistent styling, with adequate padding and a clear visual hierarchy.
+-   **Button:** Distinct background color (e.g., a shade of blue), white text, and a hover effect (e.g., slightly darker background).
+-   **Result Area:** The `#result-box` should have padding and a light background. The `#result` text should be bold, left-aligned, and use `white-space: pre-line` so multi-line output renders correctly.
 
 #### **4. File `data.js` - The Data Handling Module**
 
@@ -48,7 +56,6 @@ This file is responsible only for fetching and parsing the data from local files
     -   Implement `try...catch` error handling to manage potential file loading failures. If a file fails to load, display an error message in the `#result` paragraph.
     -   Inside the `try` block, first `await` the fetch call for `u.item`, convert the response to an `ArrayBuffer`, then decode it using `new TextDecoder('iso-8859-1')` (the file is ISO-8859-1 encoded, not UTF-8). Pass the decoded text to the `parseItemData` function.
     -   Then, `await` the fetch call for `u.data`, convert it to text, and pass it to the `parseRatingData` function.
-    -   The function should implicitly return a `Promise` that resolves when the asynchronous operations are complete.
 
 3.  **Parsing Function: `parseItemData(text)`**
     -   This function takes the raw text from `u.item` as input.
@@ -56,8 +63,9 @@ This file is responsible only for fetching and parsing the data from local files
     -   It will split the input text into individual lines. For each line, it will:
         -   Split the line by the `|` delimiter. Validate that there are at least 24 fields; skip the line otherwise.
         -   Extract the movie `id` (field 0) and `title` (field 1).
-        -   Iterate through the 19 genre binary fields (indices 5..23) to build an array of `genres` for the movie where the value is '1'.
-        -   Create a movie object `{ id, title, genres }` and push it to the global `movies` array.
+        -   Read the 19 genre binary fields (indices 5..23) into a numeric array called `vector` (e.g., `[0, 1, 0, ...]`).
+        -   Derive the `genres` string array from `vector` using the genre names.
+        -   Create a movie object `{ id, title, genres, vector }` and push it to the global `movies` array.
 
 4.  **Parsing Function: `parseRatingData(text)`**
     -   This function takes the raw text from `u.data` as input.
@@ -69,25 +77,38 @@ This file is responsible only for fetching and parsing the data from local files
 
 This file handles the user interface and the recommendation logic. It will depend on the data loaded by `data.js`.
 
-1.  **Initialization Logic:**
+1.  **Cosine Similarity Function:**
+    -   Implement a function `cosine(a, b)` that takes two numeric arrays of equal length.
+    -   Formula: `dot(a, b) / (||a|| * ||b||)`. Return 0 if either vector is all zeros.
+
+2.  **Initialization Logic:**
     -   Use `window.onload` to create an `async` function that initializes the application.
     -   Inside this function, `await` the `loadData()` function from `data.js`.
-    -   After the data is successfully loaded, call `populateMoviesDropdown()` and set an initial status message in the result box (e.g., "Data loaded. Please select a movie.").
+    -   After the data is successfully loaded, call `populateMoviesDropdown()` for all four `<select>` elements (`movie-select`, `profile-select-1`, `profile-select-2`, `profile-select-3`) and set an initial status message.
 
-2.  **UI Function: `populateMoviesDropdown()`**
-    -   This function gets the `<select>` element by its ID.
-    -   It should sort the `movies` array alphabetically by title to improve user experience.
-    -   It will then loop through the sorted `movies` array and create an `<option>` for each movie, setting its `value` to the movie `id` and its `innerText` to the movie `title`.
+3.  **UI Function: `populateMoviesDropdown(selectId)`**
+    -   This function takes a select element ID as its parameter.
+    -   It should sort the `movies` array alphabetically by title.
+    -   It will loop through the sorted movies and create an `<option>` for each, setting `value` to the movie `id` and `innerText` to the movie `title`.
 
-3.  **Core Logic: `getRecommendations()`**
-    -   This is the main function for content-based filtering, triggered by the button click. It must perform the following steps in order:
-        -   **Step 1 (Get User Input):** Get the `value` of the currently selected option from the `#movie-select` dropdown. This value is the movie ID as a string. Convert it to an integer.
-        -   **Step 2 (Find Liked Movie):** Search the global `movies` array to find the movie object whose `id` matches the selected movie ID. Store this in a `likedMovie` variable. If no movie is found, display an error and exit.
-        -   **Step 3 (Prepare for Similarity):** Create a JavaScript `Set` from the `genres` array of the `likedMovie`. Create a `candidateMovies` array by filtering the global `movies` array to exclude the `likedMovie`.
-        -   **Step 4 (Calculate Scores):** Create a `scoredMovies` array by mapping over the `candidateMovies`. For each `candidateMovie`, calculate the **Jaccard Similarity Index** between its genre set and the `likedMovie`'s genre set. The formula is `(Size of Intersection) / (Size of Union)`. The resulting objects in the new array should be in the format `{...candidate, score: jaccardScore}`.
-        -   **Step 5 (Sort by Score):** Sort the `scoredMovies` array in descending order based on the `score`.
-        -   **Step 6 (Select Top Recommendations):** Take the first two movies from the sorted array using `.slice(0, 2)`.
-        -   **Step 7 (Display Result):** Construct a user-friendly output string (e.g., "Because you liked '[Liked Movie Title]', we recommend: [Movie 1 Title], [Movie 2 Title]") and set it as the `innerText` of the `#result` paragraph.
+4.  **Core Logic: `getRecommendations()` (Item-to-Item)**
+    -   This is triggered by the "Get Recommendations" button click.
+    -   **Step 1 (Get User Input):** Get the integer value from the `#movie-select` dropdown.
+    -   **Step 2 (Find Liked Movie):** Find the movie object in the global `movies` array. If not found, display an error and exit.
+    -   **Step 3 (Score Candidates):** For every other movie, compute `cosine(likedMovie.vector, candidate.vector)`.
+    -   **Step 4 (Sort):** Sort by score descending. For ties, sort by movie `id` ascending (deterministic tie-breaking).
+    -   **Step 5 (Select Top-5):** Take the first 5 results.
+    -   **Step 6 (Display):** Show "Because you liked '[title]', we recommend:" followed by a numbered list of 5 movies, each with its score formatted to 4 decimal places. Set this as the `innerText` of `#result`.
+
+5.  **Profile Logic: `getProfileRecommendations()` (Profile-Based)**
+    -   This is triggered by the "Get Profile Recommendations" button click.
+    -   **Step 1 (Get User Input):** Get integer values from `#profile-select-1`, `#profile-select-2`, `#profile-select-3`.
+    -   **Step 2 (Build Profile):** Find all 3 movie objects. Compute the profile vector as the **element-wise mean** of their 19-dimensional genre vectors: `profile[i] = (m1[i] + m2[i] + m3[i]) / 3`.
+    -   **Step 3 (Score Candidates):** For every movie NOT in the selected 3, compute `cosine(profile, candidate.vector)`.
+    -   **Step 4 (Sort):** Sort by score descending, then by id ascending for ties.
+    -   **Step 5 (Select Top-5):** Take the first 5 results.
+    -   **Step 6 (Display):** Show "Because you liked '[title1]', '[title2]', '[title3]', we recommend:" followed by a numbered list of 5 movies with scores.
 
 ---
+
 Please now generate the complete code for the `index.html`, `style.css`, `data.js`, and `script.js` files based on these final, detailed specifications.
