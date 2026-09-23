@@ -81,6 +81,16 @@ p {
     background-color: #2980b9;
 }
 
+.btn:disabled,
+.select-control:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+    background-color: #3498db;
+}
+
 #result-box {
     background-color: #f8f9fa;
     padding: 20px;

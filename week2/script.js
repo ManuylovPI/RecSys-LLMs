@@ -15,6 +15,7 @@ window.onload = async function() {
         const resultElement = document.getElementById('result');
         resultElement.textContent = "Loading movie data...";
         resultElement.className = 'loading';
+        setControlsEnabled(false);
 
         await loadData();
 
@@ -24,10 +25,21 @@ window.onload = async function() {
         populateMoviesDropdown('profile-select-3');
         resultElement.textContent = "Data loaded. Please select a movie.";
         resultElement.className = 'success';
+        setControlsEnabled(true);
     } catch (error) {
         console.error('Initialization error:', error);
+        setControlsEnabled(true);
     }
 };
+
+// Enable/disable recommendation controls until data is ready
+function setControlsEnabled(enabled) {
+    for (const id of ['recommend-btn', 'profile-btn', 'movie-select',
+                      'profile-select-1', 'profile-select-2', 'profile-select-3']) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !enabled;
+    }
+}
 
 // Populate a dropdown with sorted movie titles
 function populateMoviesDropdown(selectId) {
@@ -39,10 +51,18 @@ function populateMoviesDropdown(selectId) {
 
     const sortedMovies = [...movies].sort((a, b) => a.title.localeCompare(b.title));
 
+    // Disambiguate duplicate titles (18 pairs in u.item) by appending the id
+    const titleCounts = new Map();
+    for (const m of movies) {
+        titleCounts.set(m.title, (titleCounts.get(m.title) || 0) + 1);
+    }
+
     sortedMovies.forEach(movie => {
         const option = document.createElement('option');
         option.value = movie.id;
-        option.textContent = movie.title;
+        option.textContent = titleCounts.get(movie.title) > 1
+            ? `${movie.title} [id=${movie.id}]`
+            : movie.title;
         selectElement.appendChild(option);
     });
 }

@@ -31,6 +31,7 @@ Build a single-page web application that recommends movies. The application will
     <script src="data.js"></script>
     <script src="script.js"></script>
     ```
+-   **Running locally:** `fetch()` cannot load `u.item` / `u.data` from `file://` (browser CORS). Serve the folder over HTTP, e.g. `npx serve week2` or `python -m http.server` from `week2/`, then open the printed URL. GitHub Pages works as-is.
 
 #### **3. File `style.css` - The Application Design**
 
